@@ -31,13 +31,13 @@ At the top of `speedtest.c`, edit:
 ## Requirements
 
 - ESP-IDF (v5.x recommended)
-- Python 3 (for serving test file)
+- Python 3 (for serving test file and upload sink)
 - A Wi-Fi AP your ESP32 can join
 
 ---
 
 ## 1. Creating the Test File (1MB.bin)
-- In windows, create a new folder with the file with 1MB size
+- In Windows, create a new folder with the file of 1 MB size (it is already inside /download folder)
 - Windows (PowerShell):
 ```Windows (PowerShell)
 fsutil file createnew 1MB.bin 1048576
@@ -45,15 +45,20 @@ fsutil file createnew 1MB.bin 1048576
 
 ---
 
-## 2. Starting a Local HTTP Server
-- From the folder containing 1MB.bin:
+## 2. Start the servers
+- Download (HTTP) server — give this command inside the download folder, containing 1MB.bin:
 ```cmd
 python -m http.server 8080
+```
+- Upload (TCP) sink — in a separate terminal, from `upload/`:
+```cmd
+cd upload
+python tcp_sink.py
 ```
 
 ---
 
-## 3. After starting the server, open monitor for esp32
+## 3. After starting both servers, open monitor for ESP32
 ![Console output](/docs/Console.png)
 
 ---

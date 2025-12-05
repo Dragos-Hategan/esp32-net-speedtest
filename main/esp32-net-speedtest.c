@@ -29,22 +29,25 @@
 
 #include "sdkconfig.h"
 
-static const char *TAG = "speedtest";
+// Download (HTTP, no TLS here)
+#define DL_HOST             "ADD_HOST_IP"       /**< Example: "example.com" or IP "192.168.1.10". */
+#define DL_PORT             8080                /**< 8080 for HTTP. For TLS you need esp_tls and different code. */
+#define DL_PATH             "/1MB.bin"          /**< Must start with '/', e.g. "/bigfile.bin". */
+#define DL_LIMIT_BYTES      0                   /**< 0 = download full response body; otherwise cap bytes (e.g., 5*1024*1024). */
 
-/* ===== DIRECT OVERRIDES (edit in this .c) =====
- * Download (HTTP, no TLS here)
- */
-#define DL_HOST         "ADD_HOST_IP"   /**< Example: "example.com" or IP "192.168.1.10". */
-#define DL_PORT         8080              /**< 8080 for HTTP. For TLS you need esp_tls and different code. */
-#define DL_PATH         "/1MB.bin"        /**< Must start with '/', e.g. "/bigfile.bin". */
-#define DL_LIMIT_BYTES  0                 /**< 0 = download full response body; otherwise cap bytes (e.g., 5*1024*1024). */
+// Upload (TCP)
+#define UL_HOST             "ADD_HOST_IP"       /** PC listening on UL_PORT */
+#define UL_PORT             5001                /** listening port */
+#define UL_TOTAL_BYTES      (1*1024)            /** bytes to send */
 
 /** I/O buffer size used for both download and (future) upload paths. */
-#define IO_BUF_SIZE     (32*1024)         /* 32 KB; tune based on RAM and desired throughput */
+#define IO_BUF_SIZE         (32*1024)           /** 32 KB; tune based on RAM and desired throughput */
 
 /** Wi-Fi credentials (edit for your network) */
-#define WIFI_SSID "ADD_AP_SSID"
-#define WIFI_PASS "ADD_AP_PASS"
+#define WIFI_SSID           "ADD_AP_SSID"
+#define WIFI_PASS           "ADD_AP_PASS"
+
+static const char *TAG = "speedtest";
 
 /* ===== UTILS MACRO =====
  * Make a small port string buffer (e.g., "80") and open a TCP socket.
@@ -66,6 +69,55 @@ static const char *TAG = "speedtest";
 
 /* ===== PROTOTYPE for helper function ===== */
 static int connect_tcp(const char *host, const char *port);
+
+/* ---------- UPLOAD (raw TCP flood) ---------- */
+/**
+ * @brief Run a raw TCP upload test and report throughput.
+ *
+ * Steps:
+ *  1. Connect to UL_HOST:UL_PORT.
+ *  2. Send UL_TOTAL_BYTES of dummy payload in chunks of IO_BUF_SIZE.
+ *  3. Shutdown write side to signal EOF, then compute elapsed time and Mbit/s.
+ *
+ * Expects a TCP server listening on UL_PORT that simply reads and closes.
+ */
+static void run_upload_test(void) {
+    ESP_LOGI(TAG, "Upload: tcp://%s:%d  (send=%u bytes)",
+             UL_HOST, UL_PORT, UL_TOTAL_BYTES);
+
+    int s;
+    OPEN_TCP_OR_RETURN(UL_HOST, UL_PORT, s, TAG);
+
+    const size_t buf_sz = IO_BUF_SIZE;
+    uint8_t *buf = malloc(buf_sz);
+    if (!buf) { ESP_LOGE(TAG, "UL: oom"); close(s); return; }
+    memset(buf, 0xA5, buf_sz); // dummy payload
+
+    uint64_t start_us = esp_timer_get_time();
+    size_t total = 0;
+
+    while (total < UL_TOTAL_BYTES) {
+        size_t chunk = MIN(buf_sz, UL_TOTAL_BYTES - total);
+        ssize_t w = write(s, buf, chunk);
+        if (w < 0) { ESP_LOGE(TAG, "UL: write error"); break; }
+        total += (size_t)w;
+        // optional: yield
+        // vTaskDelay(0);
+    }
+
+    /* Signal we're done sending so the server can close cleanly. */
+    shutdown(s, SHUT_WR);
+
+    uint64_t end_us = esp_timer_get_time();
+    double secs = (end_us - start_us) / 1e6;
+    double mbitps = (total * 8.0) / (secs * 1000.0 * 1000.0);
+
+    ESP_LOGI(TAG, "Upload total: %u bytes in %.3f s  => %.2f Mbit/s",
+             (unsigned)total, secs, mbitps);
+
+    free(buf);
+    close(s);
+}
 
 /**
  * @brief Initialize Wi-Fi in STA mode and wait until an IPv4 address is obtained.
@@ -244,6 +296,8 @@ void app_main(void) {
 
     // small stabilization delay
     vTaskDelay(pdMS_TO_TICKS(500));
+    run_upload_test();
+    printf("\n");
     run_download_test();
 
     ESP_LOGI(TAG, "Done!");
