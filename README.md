@@ -7,13 +7,13 @@ Download measures only the HTTP body (after `\r\n\r\n`). Upload sends a fixed pa
 
 ## What it does
 
-1. Initializes Wi-Fi in **STA mode** and connects to your AP with power-save disabled (`WIFI_PS_NONE`).
+1. Initializes Wi-Fi in STA mode and connects to your AP with power-save disabled (`WIFI_PS_NONE`).
 2. Download path: connect to `DL_HOST:DL_PORT`, send `GET DL_PATH HTTP/1.1`, start timing on the first body byte, read until EOF/limit, log bytes, seconds, Mbit/s.
 3. Upload path: connect to `UL_HOST:UL_PORT`, send `UL_TOTAL_BYTES` of 0xA5 payload in chunks, `shutdown(SHUT_WR)`, log bytes, seconds, Mbit/s.
 
 ---
 
-## Configuration (`main/esp32-net-speedtest.c`)
+## Configuration (main/esp32-net-speedtest.c)
 
 ```c
 #define DL_HOST        "ADD_HOST_IP"
@@ -48,11 +48,11 @@ fsutil file createnew 1MB.bin 1048576
 ---
 
 ## 2. Start the servers
-- Download (HTTP) server — from the `download/` folder containing `1MB.bin`:
+- Download (HTTP) server - from the `download/` folder containing `1MB.bin`:
 ```cmd
 python -m http.server 8080
 ```
-- Upload (TCP) sink — in a separate terminal, from `upload/`:
+- Upload (TCP) sink - in a separate terminal, from `upload/`:
 ```cmd
 cd upload
 python tcp_sink.py
@@ -62,6 +62,8 @@ python tcp_sink.py
 
 ## 3. Flash and monitor the ESP32
 Run `idf.py -p <PORT> flash monitor` (or your preferred monitor command).  
-You should see upload and download throughput logs similar to the example in `docs/Console.png`.
+Example output:
+
+![Console output](docs/Console.png)
 
 ---
