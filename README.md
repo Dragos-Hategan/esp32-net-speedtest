@@ -1,4 +1,4 @@
-# ESP-IDF Wi-Fi HTTP Speedtest (Download)
+# ESP-IDF Wi-Fi HTTP Speedtest (Download & Upload)
 
 Minimal **throughput test** over Wi-Fi STA using a plain HTTP/1.1 GET (no TLS).  
 It measures **only the HTTP body** (everything after `\r\n\r\n`), ignoring the headers.
