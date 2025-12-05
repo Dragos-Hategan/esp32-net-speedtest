@@ -22,7 +22,7 @@ It measures **only the HTTP body** (everything after `\r\n\r\n`), ignoring the h
 At the top of `speedtest.c`, edit:
 
 ```c
-#define DL_HOST "ADD_HOST_IP"
+#define DL_HOST   "ADD_HOST_IP"
 #define WIFI_SSID "ADD_AP_SSID"
 #define WIFI_PASS "ADD_AP_PASS"
 ```
