@@ -1,12 +1,14 @@
 /**
  * @file speedtest.c
- * @brief Minimal ESP-IDF HTTP download (throughput) test over Wi-Fi STA.
+ * @brief Minimal ESP-IDF Wi-Fi throughput tests: HTTP download + raw TCP upload.
  *
- * This example opens a plain TCP connection (no TLS) to a host serving a file,
- * issues a simple HTTP/1.1 GET request, then measures throughput only for the
- * HTTP body (data after the header terminator CRLFCRLF).
+ * Download path: open a plain TCP connection (no TLS), issue a simple HTTP/1.1
+ * GET, and measure throughput for the HTTP body only (after CRLFCRLF).
  *
- * Configure the Wi-Fi SSID/PASS and the download endpoint below.
+ * Upload path: open a plain TCP connection, send UL_TOTAL_BYTES of a fixed
+ * 0xA5 pattern (no reads/ACK handling), then shutdown write and report rate.
+ *
+ * Configure Wi-Fi credentials and endpoints below.
  */
 
 #include <string.h>
@@ -76,8 +78,9 @@ static int connect_tcp(const char *host, const char *port);
  *
  * Steps:
  *  1. Connect to UL_HOST:UL_PORT.
- *  2. Send UL_TOTAL_BYTES of dummy payload in chunks of IO_BUF_SIZE.
- *  3. Shutdown write side to signal EOF, then compute elapsed time and Mbit/s.
+ *  2. Send UL_TOTAL_BYTES of a fixed 0xA5 pattern in IO_BUF_SIZE chunks
+ *     (no socket reads/ACK handling).
+ *  3. Shutdown the write side to signal EOF, then compute elapsed time and Mbit/s.
  *
  * Expects a TCP server listening on UL_PORT that simply reads and closes.
  */
